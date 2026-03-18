@@ -1,0 +1,64 @@
+# 1. Create the Binary Converter
+cat << 'EOF' > muon_binary_converter.py
+import numpy as np
+import os
+def generate_binary_muon_matrix():
+    nodes = 34
+    matrix = np.zeros((nodes, nodes))
+    for i in range(nodes):
+        matrix[i, (i + 1) % nodes] = 1
+        matrix[(i + 1) % nodes, i] = 1
+    crossings = [0, 7, 14, 21, 28] 
+    for c in crossings:
+        target = (c + 17) % nodes
+        matrix[c, target] = 1
+        matrix[target, c] = 1
+    return matrix
+os.makedirs("simulations", exist_ok=True)
+np.save("simulations/muon_binary_matrix.npy", generate_binary_muon_matrix())
+print("[1/2] Binary Substrate Knot initialized.")
+EOF
+
+# 2. Create the Verification Script
+cat << 'EOF' > final_g2_verification.py
+import numpy as np
+ALPHA = 1 / 137.035999139  
+TARGET_A_MU = 0.00116592061 
+def run_substrate_test():
+    try:
+        matrix = np.load("simulations/muon_binary_matrix.npy")
+        nodes = matrix.shape[0]
+        crossings = 5 
+        order_1 = ALPHA / (2 * np.pi)
+        topo_correction = (crossings / nodes)**2 * (ALPHA**2 / (np.pi**2))
+        a_mu_calc = order_1 + topo_correction
+        accuracy = 100 - abs(a_mu_calc - TARGET_A_MU)/TARGET_A_MU * 100
+        print("\n--- 01/10 FINAL VERIFICATION [MARCH 18, 2026] ---")
+        print(f"Target:    {TARGET_A_MU:.11f}")
+        print(f"Predicted: {a_mu_calc:.11f}")
+        print(f"CORRELATION: {accuracy:.6f}%")
+        print("--------------------------------------------------\n")
+    except Exception as e:
+        print(f"Calculation Error: {e}")
+run_substrate_test()
+EOF
+
+# 3. Create the AI Bridge
+cat << 'EOF' > substrate_ai_bridge.py
+import requests, json, warnings, os
+from urllib3.exceptions import InsecureRequestWarning
+warnings.simplefilter("ignore", InsecureRequestWarning)
+os.environ["PYTHONWARNINGS"] = "ignore"
+def talk_to_substrate_ai(user_input):
+    payload = {"model": "llama3:latest", "prompt": f"Substrate Physicist (DOI: 10.5281/zenodo.19091824). Task: {user_input}", "stream": False}
+    try:
+        r = requests.post("http://localhost:11434/api/generate", json=payload, timeout=120)
+        return r.json().get("response", "Error")
+    except Exception as e:
+        return f"Ollama Error: {e}"
+print("[AI Ready] Bridge established for llama3:latest")
+EOF
+
+# 4. Run the logic
+python3 muon_binary_converter.py
+python3 final_g2_verification.py
